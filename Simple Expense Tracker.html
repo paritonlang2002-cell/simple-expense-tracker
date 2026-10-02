@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .container {
+            width: min(100%, 520px);
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 25px;
+        }
+
+        .total-box {
+            padding: 22px;
+            margin-bottom: 25px;
+            border-radius: 14px;
+            background: #111827;
+            color: white;
+            text-align: center;
+        }
+
+        .total-label {
+            color: #9ca3af;
+            font-size: 14px;
+            margin-bottom: 6px;
+        }
+
+        .total {
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .form {
+            display: grid;
+            grid-template-columns: 1fr 130px;
+            gap: 10px;
+        }
+
+        .form input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d1d5db;
+            border-radius: 9px;
+            font-size: 15px;
+            outline: none;
+        }
+
+        .form input:focus {
+            border-color: #4f46e5;
+        }
+
+        .add-button {
+            grid-column: 1 / -1;
+            padding: 13px;
+            border: none;
+            border-radius: 9px;
+            background: #4f46e5;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+        }
+
+        .add-button:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .error {
+            min-height: 20px;
+            margin-top: 10px;
+            color: #dc2626;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .expense-list {
+            margin-top: 20px;
+            display: grid;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .expense {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #f9fafb;
+        }
+
+        .expense-name {
+            font-weight: bold;
+            color: #374151;
+            word-break: break-word;
+        }
+
+        .expense-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .expense-amount {
+            font-weight: bold;
+            color: #dc2626;
+        }
+
+        .delete-button {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 7px;
+            background: #fee2e2;
+            color: #dc2626;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .delete-button:hover {
+            background: #fecaca;
+        }
+
+        .empty {
+            padding: 25px;
+            text-align: center;
+            color: #9ca3af;
+            border: 1px dashed #d1d5db;
+            border-radius: 10px;
+        }
+
+        .count {
+            margin-top: 15px;
+            text-align: right;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                padding: 22px;
+            }
+
+            .form {
+                grid-template-columns: 1fr;
+            }
+
+            .total {
+                font-size: 32px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>Expense Tracker</h1>
+        <p class="subtitle">Keep track of your spending.</p>
+
+        <section class="total-box">
+            <div class="total-label">Total Expenses</div>
+            <div class="total" id="total">₹0.00</div>
+        </section>
+
+        <form class="form" id="expenseForm">
+            <input
+                type="text"
+                id="expenseName"
+                placeholder="Expense name"
+                maxlength="50"
+            >
+
+            <input
+                type="number"
+                id="expenseAmount"
+                placeholder="Amount"
+                min="0.01"
+                step="0.01"
+            >
+
+            <button class="add-button" type="submit">Add Expense</button>
+        </form>
+
+        <div class="error" id="error"></div>
+
+        <section class="expense-list" id="expenseList">
+            <div class="empty">No expenses added yet.</div>
+        </section>
+
+        <div class="count" id="count">0 expenses</div>
+    </main>
+
+    <script>
+        const expenseForm = document.getElementById("expenseForm");
+        const expenseName = document.getElementById("expenseName");
+        const expenseAmount = document.getElementById("expenseAmount");
+        const expenseList = document.getElementById("expenseList");
+        const totalDisplay = document.getElementById("total");
+        const countDisplay = document.getElementById("count");
+        const errorDisplay = document.getElementById("error");
+
+        let expenses = [];
+
+        function updateDisplay() {
+            expenseList.innerHTML = "";
+
+            if (expenses.length === 0) {
+                expenseList.innerHTML =
+                    '<div class="empty">No expenses added yet.</div>';
+            } else {
+                expenses.forEach((expense, index) => {
+                    const item = document.createElement("div");
+                    item.className = "expense";
+
+                    item.innerHTML = `
+                        <span class="expense-name">${escapeHTML(expense.name)}</span>
+                        <div class="expense-right">
+                            <span class="expense-amount">
+                                ₹${expense.amount.toFixed(2)}
+                            </span>
+                            <button
+                                class="delete-button"
+                                type="button"
+                                data-index="${index}"
+                                aria-label="Delete expense"
+                            >×</button>
+                        </div>
+                    `;
+
+                    expenseList.appendChild(item);
+                });
+            }
+
+            const total = expenses.reduce(
+                (sum, expense) => sum + expense.amount,
+                0
+            );
+
+            totalDisplay.textContent = `₹${total.toFixed(2)}`;
+
+            countDisplay.textContent =
+                `${expenses.length} ${expenses.length === 1 ? "expense" : "expenses"}`;
+        }
+
+        function escapeHTML(text) {
+            const element = document.createElement("div");
+            element.textContent = text;
+            return element.innerHTML;
+        }
+
+        expenseForm.addEventListener("submit", event => {
+            event.preventDefault();
+
+            const name = expenseName.value.trim();
+            const amount = Number(expenseAmount.value);
+
+            if (!name || !amount || amount <= 0) {
+                errorDisplay.textContent =
+                    "Please enter an expense name and a valid amount.";
+                return;
+            }
+
+            expenses.push({
+                name: name,
+                amount: amount
+            });
+
+            expenseName.value = "";
+            expenseAmount.value = "";
+            errorDisplay.textContent = "";
+
+            updateDisplay();
+            expenseName.focus();
+        });
+
+        expenseList.addEventListener("click", event => {
+            if (!event.target.classList.contains("delete-button")) {
+                return;
+            }
+
+            const index = Number(event.target.dataset.index);
+
+            expenses.splice(index, 1);
+            updateDisplay();
+        });
+
+        updateDisplay();
+    </script>
+</body>
+</html>
+
